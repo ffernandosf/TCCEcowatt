@@ -18,6 +18,15 @@ Aprendizados do primeiro deploy:
 - `FIREBASE_SERVICE_ACCOUNT_JSON` foi colado em uma linha só (JSON
   minificado).
 - `.gitignore` agora cobre `.env.*` (antes `.env.production` escapava).
+- Regras do RTDB versionadas em `database.rules.json` (`firebase deploy
+  --only database`): só o dono lê `/devices/{id}/live` (a ingestão grava
+  `owner_uid` junto). Com as regras padrão (`false`) o card ao vivo ficava vazio.
+- Rollups hora/dia são recalculados a cada 5 min (com recuperação de 24h) e
+  no próprio `/dashboard` — o cron por hora fechada se perdia com o Render
+  dormindo e "Energia hoje" ficava zerada.
+- A conta `ferreirasteam@gmail.com` é a conta de demonstração
+  (`frontend/src/lib/demo.ts`): sempre vê dados fictícios e nunca chama a
+  API. Para dados reais (ESP32), usar outra conta.
 - `firebase login` e `gh auth login` são interativos: rodar num PowerShell
   separado, não dentro do Claude Code.
 
