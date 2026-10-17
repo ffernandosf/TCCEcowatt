@@ -42,6 +42,8 @@ async def ingest_reading(
     live_data = {
         "power": payload.power,
         "timestamp": payload.timestamp.isoformat(),
+        # As regras do RTDB liberam a leitura de /live só pra esse uid.
+        "owner_uid": device.owner_uid,
     }
     if payload.voltage is not None:
         live_data["voltage"] = payload.voltage

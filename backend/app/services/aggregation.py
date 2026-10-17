@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,3 +76,39 @@ async def rollup_all_devices(
         device_ids = [row[0] for row in result.all()]
         for device_id in device_ids:
             await compute_rollup(db, device_id, granularity, period_start, period_end)
+
+
+def current_period(granularity: str, now: datetime | None = None) -> tuple[datetime, datetime]:
+    """Período (UTC) em andamento: a hora ou o dia atual."""
+    now = now or datetime.now(timezone.utc)
+    if granularity == "hour":
+        start = now.replace(minute=0, second=0, microsecond=0)
+        return start, start + timedelta(hours=1)
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    return start, start + timedelta(days=1)
+
+
+async def refresh_current_rollup(db: AsyncSession, device_id: str, granularity: str) -> None:
+    """Atualiza o rollup do período em andamento, pra o dashboard não esperar a hora fechar."""
+    start, end = current_period(granularity)
+    await compute_rollup(db, device_id, granularity, start, end)
+
+
+async def refresh_recent_rollups(lookback_hours: int = 24) -> None:
+    """Recalcula as últimas horas (incluindo a atual) e ontem/hoje de todos os devices.
+
+    Roda em intervalo curto em vez de um cron por hora fechada: no Render free o
+    processo dorme sem tráfego, e um cron perdido deixaria a hora sem rollup.
+    """
+    hour_start, _ = current_period("hour")
+    day_start, _ = current_period("day")
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(Device.id))
+        device_ids = [row[0] for row in result.all()]
+        for device_id in device_ids:
+            for h in range(lookback_hours, -1, -1):
+                start = hour_start - timedelta(hours=h)
+                await compute_rollup(db, device_id, "hour", start, start + timedelta(hours=1))
+            for d in (1, 0):
+                start = day_start - timedelta(days=d)
+                await compute_rollup(db, device_id, "day", start, start + timedelta(days=1))

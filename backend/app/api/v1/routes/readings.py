@@ -11,6 +11,7 @@ from app.core.deps import get_owned_device
 from app.models.reading import Reading
 from app.models.rollup import ReadingRollup
 from app.schemas.reading import DashboardSummary, ReadingOut
+from app.services import aggregation
 
 router = APIRouter()
 
@@ -47,6 +48,7 @@ async def dashboard(
     db: AsyncSession = Depends(get_db),
 ):
     await get_owned_device(device_id, user["uid"], db)
+    await aggregation.refresh_current_rollup(db, device_id, granularity)
 
     result = await db.execute(
         select(ReadingRollup)

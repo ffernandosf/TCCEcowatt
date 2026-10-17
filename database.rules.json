@@ -1,0 +1,13 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "devices": {
+      "$deviceId": {
+        "live": {
+          ".read": "auth != null && data.child('owner_uid').val() === auth.uid"
+        }
+      }
+    }
+  }
+}
