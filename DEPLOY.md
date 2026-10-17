@@ -1,5 +1,29 @@
 # Deploy (versão experimental, 100% gratuita)
 
+## Estado atual (2026-10-17)
+
+| Peça | Endereço / onde configurar |
+|---|---|
+| Repositório | https://github.com/ffernandosf/TCCEcowatt (branch `main`; Render faz deploy automático a cada push) |
+| Backend (Render) | https://monitor-energia-backend-aow4.onrender.com — `/health` ok. O nome sem sufixo já era de outra conta, por isso o `-aow4`. |
+| Frontend (Firebase Hosting) | https://ecowatt2.web.app — build com `frontend/.env.production` (não versionado; `VITE_API_URL` = URL do Render acima) |
+| CORS | `CORS_ALLOWED_ORIGINS=https://ecowatt2.web.app` no painel do Render — validado |
+| Banco | Neon (connection string só no painel do Render, em `DATABASE_URL`) |
+| Dispositivo IoT | Emulado no Wokwi: ver `firmware/ecowatt-esp32/README.md` |
+
+Aprendizados do primeiro deploy:
+- O Render usa Python 3.14 por padrão e o `pydantic-core` 2.27.1 não tem
+  wheel pra ele (tenta compilar Rust e falha). Python fixado em 3.12.10 via
+  `backend/.python-version` e `PYTHON_VERSION` no `render.yaml`.
+- `FIREBASE_SERVICE_ACCOUNT_JSON` foi colado em uma linha só (JSON
+  minificado).
+- `.gitignore` agora cobre `.env.*` (antes `.env.production` escapava).
+- `firebase login` e `gh auth login` são interativos: rodar num PowerShell
+  separado, não dentro do Claude Code.
+
+Para atualizar o frontend depois de mudanças: `cd frontend; npm run build;
+cd ..; firebase deploy --only hosting`. Backend: só dar push na `main`.
+
 Stack escolhida pra TCC — sem custo, sem escalabilidade real, só precisa
 funcionar de ponta a ponta na internet:
 
