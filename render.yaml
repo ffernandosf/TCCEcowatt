@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: monitor-energia-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: FIREBASE_DATABASE_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: TARIFF_RATE_BRL_PER_KWH
+        value: "0.75"
+      - key: TARIFF_FLAG
+        value: "green"
+      - key: CARBON_INTENSITY_KG_PER_KWH
+        value: "0.08"
+      - key: STANDBY_THRESHOLD_W
+        value: "15"
+      - key: STANDBY_MIN_MINUTES
+        value: "30"

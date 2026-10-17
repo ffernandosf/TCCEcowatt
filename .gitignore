@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+*.egg
+
+# Env / secrets
+.env
+*.env
+firebase-service-account.json
+*-service-account.json
+
+# Node
+node_modules/
+frontend/dist/
+
+# Alembic
+backend/alembic/versions/*.pyc
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Config de ferramenta de IA (uso local, não faz parte do produto)
+CLAUDE.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / artefatos de execução local
+*.log
+*.pid
