@@ -37,3 +37,6 @@ Thumbs.db
 # Logs / artefatos de execução local
 *.log
 *.pid
+
+# Cache do Firebase CLI
+.firebase/
