@@ -24,7 +24,7 @@ Aprendizados do primeiro deploy:
 - Rollups hora/dia são recalculados a cada 5 min (com recuperação de 24h) e
   no próprio `/dashboard` — o cron por hora fechada se perdia com o Render
   dormindo e "Energia hoje" ficava zerada.
-- A conta `ferreirasteam@gmail.com` é a conta de demonstração
+- As contas `ferreirasteam@gmail.com` e `teste@gmail.com` (senha `test123`) são contas de demonstração
   (`frontend/src/lib/demo.ts`): sempre vê dados fictícios e nunca chama a
   API. Para dados reais (ESP32), usar outra conta.
 - `firebase login` e `gh auth login` são interativos: rodar num PowerShell

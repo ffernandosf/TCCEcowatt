@@ -17,12 +17,12 @@ import type {
 
 // Conta usada só pra demonstração: sempre vê dados fictícios, mesmo com
 // backend/Firebase reais no ar. Qualquer outra conta usa dados reais.
-const DEMO_ACCOUNT_EMAIL = 'ferreirasteam@gmail.com'
+const DEMO_ACCOUNT_EMAILS = ['ferreirasteam@gmail.com', 'teste@gmail.com']
 
 export let DEMO_MODE = false
 
 export function syncDemoMode(email: string | null | undefined): void {
-  DEMO_MODE = email === DEMO_ACCOUNT_EMAIL
+  DEMO_MODE = !!email && DEMO_ACCOUNT_EMAILS.includes(email.toLowerCase())
 }
 
 const TARIFF_RATE = 0.75
