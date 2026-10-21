@@ -286,16 +286,16 @@ function hexToRgb(hex: string): RGB {
 const REPORT_COLORS = {
   accent: hexToRgb('#a8551f'),
   accentBg: hexToRgb('#f8ece1'),
-  bg: hexToRgb('#f5f3ee'),
+  bg: hexToRgb('#eaeff4'),
   surface: hexToRgb('#ffffff'),
-  border: hexToRgb('#e2ded4'),
-  text: hexToRgb('#191712'),
-  textSecondary: hexToRgb('#5c584e'),
-  textMuted: hexToRgb('#8c8778'),
+  border: hexToRgb('#d6dee7'),
+  text: hexToRgb('#121a23'),
+  textSecondary: hexToRgb('#4b5866'),
+  textMuted: hexToRgb('#7c8997'),
   barEnergy: hexToRgb('#0d7a55'), // --chart-series-1
   lineCost: hexToRgb('#a8551f'), // --chart-series-3
-  grid: hexToRgb('#e7e3d7'), // --chart-grid
-  axis: hexToRgb('#9c9787'), // --chart-axis
+  grid: hexToRgb('#dde4ec'), // --chart-grid
+  axis: hexToRgb('#8794a2'), // --chart-axis
 }
 
 function drawDailyChart(doc: jsPDF, x: number, topY: number, w: number, h: number, rollups: RollupOut[]): void {
