@@ -19,12 +19,33 @@ interface Props {
 }
 
 const PERIODS = [7, 30, 90] as const
-type PeriodDays = (typeof PERIODS)[number]
 
-function periodRange(days: number): [Date, Date] {
-  const to = new Date()
-  const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000)
-  return [from, to]
+// Datas dos campos no formato do <input type="date"> (YYYY-MM-DD, hora local).
+function toDateInput(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function parseDateInput(value: string): Date {
+  const [y, m, d] = value.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+function presetStart(days: number): string {
+  const start = new Date()
+  start.setDate(start.getDate() - (days - 1))
+  return toDateInput(start)
+}
+
+// Do início do dia "de" até o fim do dia "até" (ou agora, se for hoje).
+function periodRange(fromInput: string, toInput: string): [Date, Date] {
+  const from = parseDateInput(fromInput)
+  const end = parseDateInput(toInput)
+  end.setDate(end.getDate() + 1)
+  const now = new Date()
+  return [from, end > now ? now : end]
 }
 
 const tooltipStyle = {
@@ -37,27 +58,37 @@ const tooltipStyle = {
 
 export function ComparisonTab({ deviceId }: Props) {
   const { t, language } = useI18n()
-  const [days, setDays] = useState<PeriodDays>(30)
+  const today = toDateInput(new Date())
+  const [fromInput, setFromInput] = useState(() => presetStart(30))
+  const [toInput, setToInput] = useState(today)
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [error, setError] = useState('')
   const [downloading, setDownloading] = useState(false)
 
   const locale = language === 'pt' ? 'pt-BR' : 'en-US'
 
+  const rangeValid = fromInput !== '' && toInput !== '' && fromInput <= toInput && toInput <= today
+
   useEffect(() => {
+    if (!rangeValid) return
     setError('')
-    const [from, to] = periodRange(days)
+    const [from, to] = periodRange(fromInput, toInput)
     getDashboard(deviceId, from, to, 'day')
       .then(setSummary)
       .catch((err) => setError(err instanceof Error ? err.message : t.comparison.loadError))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceId, days])
+  }, [deviceId, fromInput, toInput, rangeValid])
+
+  function selectPreset(days: number) {
+    setFromInput(presetStart(days))
+    setToInput(today)
+  }
 
   async function handleDownload() {
     setDownloading(true)
     setError('')
     try {
-      const [from, to] = periodRange(days)
+      const [from, to] = periodRange(fromInput, toInput)
       await downloadReport(deviceId, from, to)
     } catch (err) {
       setError(err instanceof Error ? err.message : t.comparison.reportError)
@@ -85,12 +116,47 @@ export function ComparisonTab({ deviceId }: Props) {
 
       <div className="pill-toggle">
         {PERIODS.map((p) => (
-          <button key={p} className={`pill ${days === p ? 'is-active' : ''}`} onClick={() => setDays(p)}>
+          <button
+            key={p}
+            className={`pill ${fromInput === presetStart(p) && toInput === today ? 'is-active' : ''}`}
+            onClick={() => selectPreset(p)}
+          >
             {t.comparison.periods[p]}
           </button>
         ))}
       </div>
 
+      <div className="date-range">
+        <div>
+          <label className="field-label" htmlFor="history-from">
+            {t.comparison.fromLabel}
+          </label>
+          <input
+            id="history-from"
+            className="input"
+            type="date"
+            value={fromInput}
+            max={toInput || today}
+            onChange={(e) => setFromInput(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="field-label" htmlFor="history-to">
+            {t.comparison.toLabel}
+          </label>
+          <input
+            id="history-to"
+            className="input"
+            type="date"
+            value={toInput}
+            min={fromInput}
+            max={today}
+            onChange={(e) => setToInput(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {!rangeValid && <p className="error-text">{t.comparison.invalidRange}</p>}
       {error && <p className="error-text">{error}</p>}
 
       {summary && (
@@ -163,7 +229,7 @@ export function ComparisonTab({ deviceId }: Props) {
         className="btn btn-primary"
         style={{ marginTop: '1.5rem' }}
         onClick={handleDownload}
-        disabled={downloading}
+        disabled={downloading || !rangeValid}
       >
         <DownloadIcon width={16} height={16} />
         {downloading ? t.comparison.generatingPdf : t.comparison.downloadReport}
