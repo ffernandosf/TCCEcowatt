@@ -1503,6 +1503,291 @@ input[type='range'] {
   white-space: pre;
 }
 
+/* ---------- Device implementation guide ---------- */
+
+.guide-section {
+  scroll-margin-top: 5.5rem;
+}
+
+.guide-badge {
+  display: inline-block;
+  margin: 0 0 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.guide-section-title {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+
+.guide-text {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.guide-text code,
+.guide-table code,
+.guide-flow code,
+.guide-faq code,
+.guide-callout code {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.guide-bullets {
+  list-style: disc;
+}
+
+/* Fluxo de dados: sensor -> ESP32 -> API -> bancos -> painel */
+.guide-flow {
+  list-style: none;
+  counter-reset: flow;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+
+.guide-flow li {
+  counter-increment: flow;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.guide-flow li::before {
+  content: counter(flow, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-accent);
+}
+
+.guide-flow strong {
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+
+.guide-toc {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.25rem 1.5rem;
+  margin-top: 0.4rem;
+}
+
+.guide-toc ol,
+.guide-toc ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 0.86rem;
+  line-height: 1.9;
+}
+
+.guide-toc li::marker {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.guide-toc button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.guide-toc button:hover {
+  text-decoration: underline;
+}
+
+.guide-callout {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.guide-callout p {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.guide-callout svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.guide-callout--danger {
+  border-color: var(--color-critical);
+  background: color-mix(in srgb, var(--color-critical) 8%, transparent);
+}
+
+.guide-callout--danger svg {
+  color: var(--color-critical);
+}
+
+.guide-callout--tip {
+  border-color: var(--color-border);
+  background: var(--color-accent-bg);
+}
+
+.guide-callout--tip svg {
+  color: var(--color-accent);
+}
+
+.guide-table-wrap {
+  overflow-x: auto;
+  margin-top: 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.guide-table th,
+.guide-table td {
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.guide-table th {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.guide-table td {
+  color: var(--color-text-secondary);
+  min-width: 90px;
+}
+
+.guide-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.guide-code {
+  margin-top: 1rem;
+}
+
+.guide-code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.guide-code-body {
+  margin-top: 0;
+  max-height: 460px;
+}
+
+.guide-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.guide-copy-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.guide-claim-box .claim-key {
+  align-self: stretch;
+  margin-top: 0;
+}
+
+.guide-claim-btn {
+  margin-top: 0.5rem;
+}
+
+.guide-claim-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.guide-faq {
+  margin: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.guide-faq dt {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--color-text);
+}
+
+.guide-faq dd {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
 /* ---------- Residence switcher ---------- */
 
 .residence-switcher {

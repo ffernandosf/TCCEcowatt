@@ -1,65 +1,111 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { claimDevice, getDeviceStatus } from '../../lib/api'
+import {
+  ARDUINO_SNIPPET,
+  CURL_SNIPPET,
+  PAYLOAD_SNIPPET,
+  POWERSHELL_SNIPPET,
+  RESPONSE_SNIPPET,
+  SERIAL_SNIPPET,
+  fillSnippet,
+} from '../../lib/deviceSnippets'
 import { useI18n } from '../../lib/i18n'
-import { CheckCircleIcon, ChipIcon } from '../icons'
+import { AlertTriangleIcon, BulbIcon, CheckCircleIcon, ChipIcon, CopyIcon } from '../icons'
 
 interface Props {
   deviceId: string
 }
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const KEY_PLACEHOLDER = 'COLE_A_CHAVE_AQUI'
 
-const PAYLOAD_EXAMPLE = `{
-  "device_id": "${'${DEVICE_ID}'}",
-  "timestamp": "2026-06-25T14:32:00Z",
-  "voltage": 220.3,
-  "current": 1.35,
-  "power": 297.4,
-  "energy": 1820.5,
-  "frequency": 60.0,
-  "power_factor": 0.98
-}`
-
-function curlExample(deviceId: string, key: string): string {
-  return `curl -X POST ${API_URL}/api/v1/ingest \\
-  -H "Content-Type: application/json" \\
-  -H "X-Device-Key: ${key}" \\
-  -d '{"device_id":"${deviceId}","timestamp":"2026-06-25T14:32:00Z","power":297.4}'`
+// Os textos do guia marcam código com crases (`assim`); aqui viram <code>.
+function Inline({ text }: { text: string }) {
+  const parts = text.split(/`([^`]+)`/)
+  return <>{parts.map((part, i) => (i % 2 === 1 ? <code key={i}>{part}</code> : part))}</>
 }
 
-function arduinoExample(deviceId: string, key: string): string {
-  return `#include <WiFi.h>
-#include <HTTPClient.h>
+function CodeBlock({ title, code }: { title: string; code: string }) {
+  const { t } = useI18n()
+  const [copied, setCopied] = useState(false)
 
-const char* WIFI_SSID = "your-network";
-const char* WIFI_PASSWORD = "your-password";
-const char* API_URL = "${API_URL}/api/v1/ingest";
-const char* DEVICE_ID = "${deviceId}";
-const char* DEVICE_KEY = "${key}";
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      // Sem permissão de clipboard: o usuário ainda pode selecionar o texto.
+    }
+  }
 
-void sendReading(float power, float voltage, float current) {
-  HTTPClient http;
-  http.begin(API_URL);
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-Device-Key", DEVICE_KEY);
+  return (
+    <div className="guide-code">
+      <div className="guide-code-header">
+        <span>{title}</span>
+        <button type="button" className="guide-copy-btn" onClick={handleCopy}>
+          {copied ? <CheckCircleIcon width={13} height={13} /> : <CopyIcon width={13} height={13} />}
+          {copied ? t.devices.copied : t.devices.copy}
+        </button>
+      </div>
+      <pre className="code-block guide-code-body">{code}</pre>
+    </div>
+  )
+}
 
-  String payload = String("{\\"device_id\\":\\"") + DEVICE_ID +
-    "\\",\\"timestamp\\":\\"" + getIsoTimestamp() +
-    "\\",\\"power\\":" + power +
-    ",\\"voltage\\":" + voltage +
-    ",\\"current\\":" + current + "}";
+function GuideTable({ headers, rows, codeFirstColumn = false }: { headers: string[]; rows: string[][]; codeFirstColumn?: boolean }) {
+  return (
+    <div className="guide-table-wrap">
+      <table className="guide-table">
+        <thead>
+          <tr>
+            {headers.map((h) => (
+              <th key={h}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row[0]}>
+              {row.map((cell, i) => (
+                <td key={i}>{i === 0 && codeFirstColumn ? <code>{cell}</code> : <Inline text={cell} />}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
-  int status = http.POST(payload);
-  http.end();
-}`
+function GuideSection({ id, badge, title, children }: { id: string; badge: string; title: string; children: ReactNode }) {
+  return (
+    <section id={id} className="card guide-section" style={{ maxWidth: 'none' }}>
+      <p className="guide-badge">{badge}</p>
+      <h3 className="guide-section-title">{title}</h3>
+      {children}
+    </section>
+  )
+}
+
+function Callout({ tone, children }: { tone: 'danger' | 'tip'; children: ReactNode }) {
+  const Icon = tone === 'danger' ? AlertTriangleIcon : BulbIcon
+  return (
+    <div className={`guide-callout guide-callout--${tone}`}>
+      <Icon width={16} height={16} />
+      <p>{children}</p>
+    </div>
+  )
 }
 
 export function DeviceSetupTab({ deviceId }: Props) {
   const { t } = useI18n()
+  const d = t.devices
   const [claimed, setClaimed] = useState<boolean | null>(null)
   const [key, setKey] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [keyCopied, setKeyCopied] = useState(false)
 
   async function loadStatus() {
     setError('')
@@ -67,11 +113,12 @@ export function DeviceSetupTab({ deviceId }: Props) {
       const status = await getDeviceStatus(deviceId)
       setClaimed(status.claimed)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.devices.statusError)
+      setError(err instanceof Error ? err.message : d.statusError)
     }
   }
 
   useEffect(() => {
+    setKey(null)
     loadStatus()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId])
@@ -84,79 +131,241 @@ export function DeviceSetupTab({ deviceId }: Props) {
       setKey(result.device_key)
       setClaimed(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.devices.generateError)
+      setError(err instanceof Error ? err.message : d.generateError)
     } finally {
       setLoading(false)
     }
   }
 
-  const displayKey = key ?? 'YOUR_KEY_HERE'
+  async function handleCopyKey() {
+    if (!key) return
+    try {
+      await navigator.clipboard.writeText(key)
+      setKeyCopied(true)
+      setTimeout(() => setKeyCopied(false), 1800)
+    } catch {
+      // idem CodeBlock
+    }
+  }
+
+  const values = { apiUrl: API_URL, deviceId, deviceKey: key ?? KEY_PLACEHOLDER }
+  const fill = (template: string) => fillSnippet(template, values)
+
+  const steps = [
+    { id: 'guide-materials', title: d.materials.title },
+    { id: 'guide-claim', title: d.claim.title },
+    { id: 'guide-wiring', title: d.wiring.title },
+    { id: 'guide-ide', title: d.ide.title },
+    { id: 'guide-firmware', title: d.firmware.title },
+    { id: 'guide-test', title: d.test.title },
+    { id: 'guide-verify', title: d.verify.title },
+  ]
+  const references = [
+    { id: 'guide-contract', title: d.contract.title },
+    { id: 'guide-responses', title: d.responses.title },
+    { id: 'guide-troubleshooting', title: d.troubleshooting.title },
+    { id: 'guide-security', title: d.security.title },
+  ]
+  const stepBadge = (n: number) => `${d.stepLabel} ${n}`
+
+  function scrollTo(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <>
       <div className="card" style={{ maxWidth: 'none' }}>
         <p className="card-title">
           <ChipIcon width={15} height={15} />
-          {t.devices.statusTitle}
+          {d.guideTitle}
         </p>
-        <p className="card-subtitle">
-          {t.devices.deviceIdLabel}: <code>{deviceId}</code>
+        <p className="card-subtitle">{d.guideIntro}</p>
+
+        <p className="field-label" style={{ marginTop: '1.25rem' }}>
+          {d.flowTitle}
         </p>
-
-        {error && <p className="error-text">{error}</p>}
-
-        {claimed && !key && (
-          <div className="status-pill" style={{ marginBottom: '1rem' }}>
-            <CheckCircleIcon width={16} height={16} style={{ color: 'var(--color-good)' }} />
-            {t.devices.alreadyConfigured}
-          </div>
-        )}
-
-        {key && (
-          <>
-            <p className="label">{t.devices.keyGeneratedNow}</p>
-            <div className="claim-key">{key}</div>
-          </>
-        )}
-
-        <button className="btn btn-primary" style={{ marginTop: '1rem' }} onClick={handleGenerate} disabled={loading}>
-          {loading ? t.devices.generating : claimed ? t.devices.regenerateKey : t.devices.claimAndGenerate}
-        </button>
-      </div>
-
-      <div className="card" style={{ maxWidth: 'none' }}>
-        <p className="card-title">{t.devices.firmwareTitle}</p>
-        <p className="card-subtitle">{t.devices.firmwareIntro}</p>
-
-        <ol className="setup-steps">
-          <li>{t.devices.step1}</li>
-          <li>{t.devices.step2}</li>
-          <li>
-            {t.devices.step3a} <code>POST</code> {t.devices.step3b}{' '}
-            <code>{API_URL}/api/v1/ingest</code>
-            {t.devices.step3c} <code>X-Device-Key</code>.
-          </li>
-          <li>
-            {t.devices.step4a} <code>power</code> {t.devices.step4b} <code>energy</code>,{' '}
-            <code>frequency</code> {t.devices.step4and} <code>power_factor</code> {t.devices.step4c}
-          </li>
+        <ol className="guide-flow">
+          {d.flow.map((node) => (
+            <li key={node.title}>
+              <strong>{node.title}</strong>
+              <span>
+                <Inline text={node.desc} />
+              </span>
+            </li>
+          ))}
         </ol>
 
         <p className="field-label" style={{ marginTop: '1.25rem' }}>
-          {t.devices.payloadTitle}
+          {d.tocTitle}
         </p>
-        <pre className="code-block">{PAYLOAD_EXAMPLE}</pre>
-
-        <p className="field-label" style={{ marginTop: '1.25rem' }}>
-          {t.devices.curlTitle}
-        </p>
-        <pre className="code-block">{curlExample(deviceId, displayKey)}</pre>
-
-        <p className="field-label" style={{ marginTop: '1.25rem' }}>
-          {t.devices.arduinoTitle}
-        </p>
-        <pre className="code-block">{arduinoExample(deviceId, displayKey)}</pre>
+        <div className="guide-toc">
+          <ol>
+            {steps.map((s) => (
+              <li key={s.id}>
+                <button type="button" onClick={() => scrollTo(s.id)}>
+                  {s.title}
+                </button>
+              </li>
+            ))}
+          </ol>
+          <ul>
+            {references.map((s) => (
+              <li key={s.id}>
+                <button type="button" onClick={() => scrollTo(s.id)}>
+                  {s.title}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
+
+      <GuideSection id="guide-materials" badge={stepBadge(1)} title={d.materials.title}>
+        <p className="guide-text">{d.materials.intro}</p>
+        <GuideTable headers={d.materials.headers} rows={d.materials.rows} />
+        <p className="field-label" style={{ marginTop: '1.25rem' }}>
+          {d.materials.requirementsTitle}
+        </p>
+        <ul className="setup-steps guide-bullets">
+          {d.materials.requirements.map((r) => (
+            <li key={r}>
+              <Inline text={r} />
+            </li>
+          ))}
+        </ul>
+      </GuideSection>
+
+      <GuideSection id="guide-claim" badge={stepBadge(2)} title={d.claim.title}>
+        <p className="guide-text">
+          <Inline text={d.claim.intro} />
+        </p>
+        <ul className="setup-steps guide-bullets">
+          {d.claim.points.map((p) => (
+            <li key={p}>{p}</li>
+          ))}
+        </ul>
+
+        <div className="guide-claim-box">
+          <p className="label">{d.statusTitle}</p>
+          <p className="card-subtitle">
+            {d.deviceIdLabel}: <code>{deviceId}</code>
+          </p>
+
+          {error && <p className="error-text">{error}</p>}
+
+          {claimed && !key && (
+            <div className="status-pill">
+              <CheckCircleIcon width={16} height={16} style={{ color: 'var(--color-good)' }} />
+              {d.alreadyConfigured}
+            </div>
+          )}
+
+          {key && (
+            <>
+              <p className="label">{d.keyGeneratedNow}</p>
+              <div className="claim-key">{key}</div>
+              <button type="button" className="guide-copy-btn" onClick={handleCopyKey}>
+                {keyCopied ? <CheckCircleIcon width={13} height={13} /> : <CopyIcon width={13} height={13} />}
+                {keyCopied ? d.copied : d.copy}
+              </button>
+            </>
+          )}
+
+          <button className="btn btn-primary guide-claim-btn" onClick={handleGenerate} disabled={loading}>
+            {loading ? d.generating : claimed ? d.regenerateKey : d.claimAndGenerate}
+          </button>
+        </div>
+      </GuideSection>
+
+      <GuideSection id="guide-wiring" badge={stepBadge(3)} title={d.wiring.title}>
+        <Callout tone="danger">{d.wiring.danger}</Callout>
+        <ol className="setup-steps">
+          {d.wiring.steps.map((st) => (
+            <li key={st}>{st}</li>
+          ))}
+        </ol>
+      </GuideSection>
+
+      <GuideSection id="guide-ide" badge={stepBadge(4)} title={d.ide.title}>
+        <ol className="setup-steps">
+          {d.ide.steps.map((s) => (
+            <li key={s}>
+              <Inline text={s} />
+            </li>
+          ))}
+        </ol>
+      </GuideSection>
+
+      <GuideSection id="guide-firmware" badge={stepBadge(5)} title={d.firmware.title}>
+        <p className="guide-text">{d.firmware.intro}</p>
+        {!key && (
+          <Callout tone="tip">
+            <Inline text={d.firmware.keyMissing} />
+          </Callout>
+        )}
+        <p className="field-label" style={{ marginTop: '1.25rem' }}>
+          {d.firmware.constantsTitle}
+        </p>
+        <GuideTable headers={d.firmware.constantsHeaders} rows={d.firmware.constants} codeFirstColumn />
+        <CodeBlock title={d.firmware.codeTitle} code={fill(ARDUINO_SNIPPET)} />
+        <p className="guide-text" style={{ marginTop: '1rem' }}>
+          {d.firmware.upload}
+        </p>
+      </GuideSection>
+
+      <GuideSection id="guide-test" badge={stepBadge(6)} title={d.test.title}>
+        <p className="guide-text">{d.test.intro}</p>
+        <CodeBlock title={d.test.curlTitle} code={fill(CURL_SNIPPET)} />
+        <CodeBlock title={d.test.psTitle} code={fill(POWERSHELL_SNIPPET)} />
+        <CodeBlock title={d.test.responseTitle} code={fill(RESPONSE_SNIPPET)} />
+
+      </GuideSection>
+
+      <GuideSection id="guide-verify" badge={stepBadge(7)} title={d.verify.title}>
+        <ol className="setup-steps">
+          {d.verify.steps.map((s) => (
+            <li key={s}>
+              <Inline text={s} />
+            </li>
+          ))}
+        </ol>
+        <CodeBlock title={d.verify.serialTitle} code={SERIAL_SNIPPET} />
+      </GuideSection>
+
+      <GuideSection id="guide-contract" badge={d.referenceLabel} title={d.contract.title}>
+        <p className="guide-text">
+          <Inline text={d.contract.intro} />
+        </p>
+        <GuideTable headers={d.contract.headers} rows={d.contract.rows} codeFirstColumn />
+        <CodeBlock title={d.contract.exampleTitle} code={fill(PAYLOAD_SNIPPET)} />
+      </GuideSection>
+
+      <GuideSection id="guide-responses" badge={d.referenceLabel} title={d.responses.title}>
+        <GuideTable headers={d.responses.headers} rows={d.responses.rows} />
+      </GuideSection>
+
+      <GuideSection id="guide-troubleshooting" badge={d.referenceLabel} title={d.troubleshooting.title}>
+        <dl className="guide-faq">
+          {d.troubleshooting.items.map((item) => (
+            <div key={item.problem}>
+              <dt>{item.problem}</dt>
+              <dd>
+                <Inline text={item.fix} />
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </GuideSection>
+
+      <GuideSection id="guide-security" badge={d.referenceLabel} title={d.security.title}>
+        <ul className="setup-steps guide-bullets">
+          {d.security.items.map((s) => (
+            <li key={s}>
+              <Inline text={s} />
+            </li>
+          ))}
+        </ul>
+      </GuideSection>
     </>
   )
 }
