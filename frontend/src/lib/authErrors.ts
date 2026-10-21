@@ -1,16 +1,21 @@
-const MESSAGES: Record<string, string> = {
-  'auth/invalid-email': 'E-mail inválido.',
-  'auth/user-disabled': 'Esta conta foi desativada.',
-  'auth/user-not-found': 'E-mail ou senha incorretos.',
-  'auth/wrong-password': 'E-mail ou senha incorretos.',
-  'auth/invalid-credential': 'E-mail ou senha incorretos.',
-  'auth/email-already-in-use': 'Já existe uma conta com este e-mail.',
-  'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
-  'auth/too-many-requests': 'Muitas tentativas. Aguarde um pouco e tente novamente.',
+import { getCurrentLanguage } from './i18n'
+import { translations, type Translations } from './translations'
+
+const MESSAGE_KEYS: Record<string, keyof Translations['errors']> = {
+  'auth/invalid-email': 'authInvalidEmail',
+  'auth/user-disabled': 'authUserDisabled',
+  'auth/user-not-found': 'authWrongCredentials',
+  'auth/wrong-password': 'authWrongCredentials',
+  'auth/invalid-credential': 'authWrongCredentials',
+  'auth/email-already-in-use': 'authEmailInUse',
+  'auth/weak-password': 'authWeakPassword',
+  'auth/too-many-requests': 'authTooManyRequests',
+  'auth/network-request-failed': 'network',
 }
 
 export function friendlyAuthError(err: unknown): string {
+  const errors = translations[getCurrentLanguage()].errors
   const code = (err as { code?: string })?.code
-  if (code && MESSAGES[code]) return MESSAGES[code]
-  return err instanceof Error ? err.message : 'Ocorreu um erro. Tente novamente.'
+  if (code && MESSAGE_KEYS[code]) return errors[MESSAGE_KEYS[code]]
+  return errors.generic
 }

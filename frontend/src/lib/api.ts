@@ -1,4 +1,6 @@
 import { auth } from './firebase'
+import { getCurrentLanguage } from './i18n'
+import { translations, type Translations } from './translations'
 import {
   DEMO_MODE,
   MOCK_DEVICES,
@@ -110,6 +112,7 @@ export interface NotificationOut {
   id: number
   type: 'offline' | 'limit' | 'spike'
   message: string
+  params: Record<string, number> | null
   read: boolean
   created_at: string
 }
@@ -143,27 +146,54 @@ function sleep(ms: number): Promise<void> {
 // esse 401 passageiro fazia telas como "Residências" parecerem vazias logo após logar.
 const RETRY_DELAYS_MS = [700, 1500]
 
+// O servidor responde os erros em português; aqui viram o texto do idioma escolhido.
+const API_ERROR_KEYS: Record<string, keyof Translations['errors']> = {
+  'Dispositivo não encontrado': 'deviceNotFound',
+  'Dispositivo já reivindicado por outro usuário': 'deviceAlreadyClaimed',
+  'Notificação não encontrada': 'notificationNotFound',
+  'Token ausente ou mal formatado': 'sessionExpired',
+  'Token inválido ou expirado': 'sessionExpired',
+  'Firebase não configurado': 'serviceUnavailable',
+}
+
+function errorText(key: keyof Translations['errors']): string {
+  return translations[getCurrentLanguage()].errors[key]
+}
+
+function apiErrorMessage(status: number, detail: unknown): string {
+  if (typeof detail === 'string' && API_ERROR_KEYS[detail]) return errorText(API_ERROR_KEYS[detail])
+  if (status === 422) return errorText('invalidData')
+  if (status === 401) return errorText('sessionExpired')
+  if (status >= 500) return errorText('serviceUnavailable')
+  return errorText('generic')
+}
+
 async function authedFetch(path: string, init?: RequestInit): Promise<Response> {
   const user = auth.currentUser
-  if (!user) throw new ApiError(401, 'Usuário não autenticado')
+  if (!user) throw new ApiError(401, errorText('notAuthenticated'))
 
-  let lastError = new ApiError(401, 'Usuário não autenticado')
+  let lastError = new ApiError(401, errorText('notAuthenticated'))
 
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
     const token = await user.getIdToken(attempt > 0)
 
-    const res = await fetch(`${API_URL}${path}`, {
-      ...init,
-      headers: {
-        ...init?.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    let res: Response
+    try {
+      res = await fetch(`${API_URL}${path}`, {
+        ...init,
+        headers: {
+          ...init?.headers,
+          Authorization: `Bearer ${token}`,
+        },
+      })
+    } catch {
+      throw new ApiError(0, errorText('network'))
+    }
 
     if (res.ok) return res
 
     const body = await res.json().catch(() => null)
-    lastError = new ApiError(res.status, body?.detail ?? res.statusText)
+    lastError = new ApiError(res.status, apiErrorMessage(res.status, body?.detail))
 
     if (res.status !== 401 || attempt === RETRY_DELAYS_MS.length) break
     await sleep(RETRY_DELAYS_MS[attempt])
@@ -328,14 +358,16 @@ export async function getCarbon(deviceId: string, from: Date, to: Date): Promise
 }
 
 export async function downloadReport(deviceId: string, from: Date, to: Date): Promise<void> {
+  const language = getCurrentLanguage()
   let blob: Blob
   if (DEMO_MODE) {
-    blob = mockReportPdf(deviceId, from, to)
+    blob = mockReportPdf(deviceId, from, to, language)
   } else {
     const params = new URLSearchParams({
       device_id: deviceId,
       from: from.toISOString(),
       to: to.toISOString(),
+      lang: language,
     })
     const res = await authedFetch(`/api/v1/report?${params}`)
     blob = await res.blob()
@@ -343,7 +375,7 @@ export async function downloadReport(deviceId: string, from: Date, to: Date): Pr
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `relatorio-${deviceId}.pdf`
+  link.download = `${translations[language].report.fileName}-${deviceId}.pdf`
   link.click()
   URL.revokeObjectURL(url)
 }

@@ -3,6 +3,17 @@ import { translations, type Language, type Translations } from './translations'
 
 const STORAGE_KEY = 'ecowatt-language'
 
+// Espelho do idioma do provider para código fora de componentes (erros da API, PDF demo).
+let currentLanguage: Language = 'pt'
+
+export function getCurrentLanguage(): Language {
+  return currentLanguage
+}
+
+export function localeFor(language: Language): string {
+  return language === 'pt' ? 'pt-BR' : 'en-US'
+}
+
 const LanguageContext = createContext<{
   language: Language
   setLanguage: (lang: Language) => void
@@ -21,6 +32,7 @@ function getInitialLanguage(): Language {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>(getInitialLanguage)
+  currentLanguage = language
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, language)

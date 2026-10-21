@@ -11,6 +11,7 @@ import {
   type ReadingOut,
 } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
+import { notificationMessage } from '../../lib/notifications'
 import { ClaimDeviceCard } from '../ClaimDeviceCard'
 import { PowerGauge } from '../PowerGauge'
 import {
@@ -206,7 +207,7 @@ export function LiveTab({ deviceId }: Props) {
                     <Icon width={13} height={13} />
                   </span>
                   <div>
-                    <p className="mini-notif-text">{n.message}</p>
+                    <p className="mini-notif-text">{notificationMessage(n, t, language)}</p>
                     <p className="mini-notif-time">{new Date(n.created_at).toLocaleString(locale)}</p>
                   </div>
                 </div>

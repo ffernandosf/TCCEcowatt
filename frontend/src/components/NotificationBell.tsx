@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { getNotifications, markNotificationRead, type NotificationOut } from '../lib/api'
 import { useClickOutside } from '../hooks/useClickOutside'
 import { useI18n } from '../lib/i18n'
+import { notificationMessage } from '../lib/notifications'
 import { AlertTriangleIcon, BellIcon, PlugIcon, TargetIcon } from './icons'
 
 interface Props {
@@ -91,7 +92,7 @@ export function NotificationBell({ deviceId }: Props) {
                 </span>
                 <div>
                   <p className="notif-title">{TYPE_LABEL[n.type] ?? n.type}</p>
-                  <p className="notif-message">{n.message}</p>
+                  <p className="notif-message">{notificationMessage(n, t, language)}</p>
                   <p className="notif-time">{new Date(n.created_at).toLocaleString(locale)}</p>
                 </div>
               </div>

@@ -14,6 +14,8 @@ import type {
   StandbyOut,
   TariffOut,
 } from './api'
+import { localeFor } from './i18n'
+import { translations, type Language, type Translations } from './translations'
 
 // Conta usada só pra demonstração: sempre vê dados fictícios, mesmo com
 // backend/Firebase reais no ar. Qualquer outra conta usa dados reais.
@@ -202,21 +204,24 @@ const mockNotifications: NotificationOut[] = [
   {
     id: 1,
     type: 'spike',
-    message: 'Pico de potência detectado: 2350 W às 19:42.',
+    message: 'Pico de potência detectado: 2350 W (média recente 410 W)',
+    params: { power_w: 2350, baseline_w: 410 },
     read: false,
     created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: 2,
     type: 'limit',
-    message: 'Você atingiu 80% da meta mensal de R$ 250,00.',
+    message: 'Meta mensal ultrapassada: R$ 252.40 de R$ 250.00',
+    params: { current_brl: 252.4, budget_brl: 250 },
     read: false,
     created_at: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
   },
   {
     id: 3,
     type: 'offline',
-    message: 'Dispositivo ficou offline por 12 minutos.',
+    message: 'Dispositivo sem leituras há mais de 30 minutos',
+    params: { minutes: 30 },
     read: true,
     created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
   },
@@ -298,13 +303,22 @@ const REPORT_COLORS = {
   axis: hexToRgb('#8794a2'), // --chart-axis
 }
 
-function drawDailyChart(doc: jsPDF, x: number, topY: number, w: number, h: number, rollups: RollupOut[]): void {
+function drawDailyChart(
+  doc: jsPDF,
+  x: number,
+  topY: number,
+  w: number,
+  h: number,
+  rollups: RollupOut[],
+  language: Language,
+): void {
   const c = REPORT_COLORS
+  const r = translations[language].report
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(...c.text)
-  doc.text('Consumo diário', x, topY + 0.5)
+  doc.text(r.dailyConsumption, x, topY + 0.5)
 
   const legendY = topY + 0.45
   doc.setFillColor(...c.barEnergy)
@@ -312,14 +326,14 @@ function drawDailyChart(doc: jsPDF, x: number, topY: number, w: number, h: numbe
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(...c.textSecondary)
-  doc.text('Energia (kWh)', x + w - 5.9, legendY - 0.05)
+  doc.text(r.energyKwh, x + w - 5.9, legendY - 0.05)
 
   doc.setDrawColor(...c.lineCost)
   doc.setLineWidth(0.04)
   doc.line(x + w - 2.9, legendY - 0.14, x + w - 2.4, legendY - 0.14)
   doc.setFillColor(...c.lineCost)
   doc.circle(x + w - 2.65, legendY - 0.14, 0.055, 'F')
-  doc.text('Custo (R$)', x + w - 2.25, legendY - 0.05)
+  doc.text(r.costBrl, x + w - 2.25, legendY - 0.05)
 
   const plotX0 = x + 1.4
   const plotX1 = x + w - 1.4
@@ -332,7 +346,7 @@ function drawDailyChart(doc: jsPDF, x: number, topY: number, w: number, h: numbe
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
     doc.setTextColor(...c.textMuted)
-    doc.text('Sem dados suficientes para o período.', x + w / 2, topY + h / 2, { align: 'center' })
+    doc.text(r.noData, x + w / 2, topY + h / 2, { align: 'center' })
     return
   }
 
@@ -389,7 +403,7 @@ function drawDailyChart(doc: jsPDF, x: number, topY: number, w: number, h: numbe
     if (i % labelStep !== 0) return
     const cx = plotX0 + i * slotW + slotW / 2
     const d = new Date(r.period_start)
-    doc.text(d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }), cx, plotY0 + 0.45, {
+    doc.text(d.toLocaleDateString(localeFor(language), { day: '2-digit', month: '2-digit' }), cx, plotY0 + 0.45, {
       align: 'center',
     })
   })
@@ -403,6 +417,7 @@ function drawTableHeaderRow(
   col1X: number,
   col2X: number,
   col3X: number,
+  r: Translations['report'],
 ): number {
   const c = REPORT_COLORS
   doc.setFillColor(...c.accentBg)
@@ -410,16 +425,18 @@ function drawTableHeaderRow(
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(9)
   doc.setTextColor(...c.text)
-  doc.text('DATA', col1X, y + 0.47)
-  doc.text('ENERGIA (kWh)', col2X, y + 0.47, { align: 'right' })
-  doc.text('CUSTO (R$)', col3X, y + 0.47, { align: 'right' })
+  doc.text(r.date.toUpperCase(), col1X, y + 0.47)
+  doc.text(r.energyKwh.toUpperCase(), col2X, y + 0.47, { align: 'right' })
+  doc.text(r.costBrl.toUpperCase(), col3X, y + 0.47, { align: 'right' })
   return y + 0.7
 }
 
 // Espelha o layout de backend/app/services/pdf_report.py, mas com rollups
 // fictícios — a conta demo não tem dispositivos reais no banco pro backend consultar.
-export function mockReportPdf(deviceId: string, from: Date, to: Date): Blob {
+export function mockReportPdf(deviceId: string, from: Date, to: Date, language: Language): Blob {
   const c = REPORT_COLORS
+  const r = translations[language].report
+  const locale = localeFor(language)
   const rollups = mockRollups(from, to)
   const totalEnergyWh = rollups.reduce((sum, r) => sum + r.energy_wh, 0)
   const totalCostBrl = rollups.reduce((sum, r) => sum + r.cost_brl, 0)
@@ -438,12 +455,12 @@ export function mockReportPdf(deviceId: string, from: Date, to: Date): Blob {
   doc.setTextColor(255, 255, 255)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(19)
-  doc.text('Relatório de consumo de energia', margin, 1.7)
+  doc.text(r.title, margin, 1.7)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.text('ECOWATT', pageWidth - margin, 1.05, { align: 'right' })
   doc.setFontSize(8)
-  doc.text(`Gerado em ${new Date().toLocaleString('pt-BR')}`, pageWidth - margin, 1.55, { align: 'right' })
+  doc.text(`${r.generatedAt} ${new Date().toLocaleString(locale)}`, pageWidth - margin, 1.55, { align: 'right' })
 
   let y = 3 + 0.9
 
@@ -455,9 +472,9 @@ export function mockReportPdf(deviceId: string, from: Date, to: Date): Blob {
   doc.roundedRect(margin, y, contentWidth, metaH, 0.15, 0.15, 'FD')
   const metaColW = contentWidth / 3
   const metaItems: [string, string][] = [
-    ['Dispositivo', deviceId],
-    ['Período', `${from.toLocaleDateString('pt-BR')} a ${to.toLocaleDateString('pt-BR')}`],
-    ['Tarifa considerada', `R$ ${EFFECTIVE_RATE.toFixed(2)}/kWh`],
+    [r.device, deviceId],
+    [r.period, `${from.toLocaleDateString(locale)} ${r.periodSep} ${to.toLocaleDateString(locale)}`],
+    [r.tariff, `R$ ${(mockTariffRate + FLAG_SURCHARGE).toFixed(4)}/kWh`],
   ]
   metaItems.forEach(([label, value], i) => {
     const cx = margin + 0.6 + i * metaColW
@@ -477,9 +494,9 @@ export function mockReportPdf(deviceId: string, from: Date, to: Date): Blob {
   const cardW = (contentWidth - cardGap * 2) / 3
   const cardH = 2.5
   const stats: [string, string, RGB][] = [
-    ['Consumo total', `${(totalEnergyWh / 1000).toFixed(2)} kWh`, c.barEnergy],
-    ['Custo total estimado', `R$ ${totalCostBrl.toFixed(2)}`, c.accent],
-    ['Média diária', `${avgEnergyKwh.toFixed(2)} kWh · R$ ${avgCostBrl.toFixed(2)}`, c.textSecondary],
+    [r.totalEnergy, `${(totalEnergyWh / 1000).toFixed(2)} kWh`, c.barEnergy],
+    [r.totalCost, `R$ ${totalCostBrl.toFixed(2)}`, c.accent],
+    [r.dailyAverage, `${avgEnergyKwh.toFixed(2)} kWh · R$ ${avgCostBrl.toFixed(2)}`, c.textSecondary],
   ]
   stats.forEach(([label, value, accentColor], i) => {
     const cx = margin + i * (cardW + cardGap)
@@ -502,7 +519,7 @@ export function mockReportPdf(deviceId: string, from: Date, to: Date): Blob {
 
   // Gráfico
   const chartH = 7.5
-  drawDailyChart(doc, margin, y, contentWidth, chartH, rollups)
+  drawDailyChart(doc, margin, y, contentWidth, chartH, rollups, language)
   y += chartH + 1
 
   // Tabela
@@ -511,14 +528,14 @@ export function mockReportPdf(deviceId: string, from: Date, to: Date): Blob {
   const col3X = margin + contentWidth - 0.3
   const rowH = 0.6
 
-  y = drawTableHeaderRow(doc, margin, y, contentWidth, col1X, col2X, col3X)
+  y = drawTableHeaderRow(doc, margin, y, contentWidth, col1X, col2X, col3X, r)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   rollups.forEach((rollup, i) => {
     if (y + rowH > pageHeight - 2.4) {
       doc.addPage()
       y = margin
-      y = drawTableHeaderRow(doc, margin, y, contentWidth, col1X, col2X, col3X)
+      y = drawTableHeaderRow(doc, margin, y, contentWidth, col1X, col2X, col3X, r)
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
     }
@@ -528,7 +545,7 @@ export function mockReportPdf(deviceId: string, from: Date, to: Date): Blob {
     }
     const date = new Date(rollup.period_start)
     doc.setTextColor(...c.textSecondary)
-    doc.text(date.toLocaleDateString('pt-BR'), col1X, y + rowH - 0.18)
+    doc.text(date.toLocaleDateString(locale), col1X, y + rowH - 0.18)
     doc.setTextColor(...c.text)
     doc.text((rollup.energy_wh / 1000).toFixed(2), col2X, y + rowH - 0.18, { align: 'right' })
     doc.text(rollup.cost_brl.toFixed(2), col3X, y + rowH - 0.18, { align: 'right' })
@@ -548,8 +565,8 @@ export function mockReportPdf(deviceId: string, from: Date, to: Date): Blob {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(7.5)
     doc.setTextColor(...c.textMuted)
-    doc.text('Ecowatt · Relatório gerado automaticamente', margin, pageHeight - 1.0)
-    doc.text(`Página ${p} de ${pageCount}`, pageWidth - margin, pageHeight - 1.0, { align: 'right' })
+    doc.text(r.footer, margin, pageHeight - 1.0)
+    doc.text(r.page.replace('{page}', String(p)).replace('{total}', String(pageCount)), pageWidth - margin, pageHeight - 1.0, { align: 'right' })
   }
 
   return doc.output('blob')

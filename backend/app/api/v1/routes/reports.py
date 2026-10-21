@@ -19,6 +19,7 @@ async def get_report(
     device_id: str,
     start: datetime = Query(..., alias="from"),
     end: datetime = Query(..., alias="to"),
+    lang: str = Query("pt", pattern="^(pt|en)$"),
     user: dict = Depends(security.get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -37,12 +38,13 @@ async def get_report(
     rollups = list(result.scalars().all())
 
     rate = await tariff.effective_rate_for_owner(db, user["uid"])
-    pdf_bytes = build_report_pdf(device_id, start, end, rollups, rate)
+    pdf_bytes = build_report_pdf(device_id, start, end, rollups, rate, lang)
+    filename = f"{'report' if lang == 'en' else 'relatorio'}-{device_id}.pdf"
 
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="relatorio-{device_id}.pdf"'
+            "Content-Disposition": f'attachment; filename="{filename}"'
         },
     )

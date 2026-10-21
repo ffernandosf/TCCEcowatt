@@ -33,8 +33,10 @@ async def _recent_notification_exists(
     return result.first() is not None
 
 
-async def _create_notification(db: AsyncSession, device_id: str, type_: str, message: str) -> None:
-    db.add(Notification(device_id=device_id, type=type_, message=message))
+async def _create_notification(
+    db: AsyncSession, device_id: str, type_: str, message: str, params: dict[str, float]
+) -> None:
+    db.add(Notification(device_id=device_id, type=type_, message=message, params=params))
     await db.commit()
 
 
@@ -65,6 +67,7 @@ async def check_spike(db: AsyncSession, device_id: str, power: float) -> None:
         device_id,
         "spike",
         f"Pico de potência detectado: {power:.0f} W (média recente {baseline:.0f} W)",
+        {"power_w": round(power), "baseline_w": round(baseline)},
     )
 
 
@@ -91,6 +94,7 @@ async def check_offline_devices() -> None:
                 device.id,
                 "offline",
                 f"Dispositivo sem leituras há mais de {OFFLINE_THRESHOLD_MINUTES} minutos",
+                {"minutes": OFFLINE_THRESHOLD_MINUTES},
             )
 
 
@@ -108,4 +112,8 @@ async def check_budget_alerts() -> None:
                 goal.device_id,
                 "limit",
                 f"Meta mensal ultrapassada: R$ {current_cost:.2f} de R$ {goal.monthly_budget_brl:.2f}",
+                {
+                    "current_brl": round(current_cost, 2),
+                    "budget_brl": round(goal.monthly_budget_brl, 2),
+                },
             )
