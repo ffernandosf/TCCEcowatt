@@ -5,10 +5,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import security
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_owned_device
 from app.models.rollup import ReadingRollup
+from app.services import tariff
 from app.services.pdf_report import build_report_pdf
 
 router = APIRouter()
@@ -36,9 +36,8 @@ async def get_report(
     )
     rollups = list(result.scalars().all())
 
-    pdf_bytes = build_report_pdf(
-        device_id, start, end, rollups, settings.tariff_rate_brl_per_kwh
-    )
+    rate = await tariff.effective_rate_for_owner(db, user["uid"])
+    pdf_bytes = build_report_pdf(device_id, start, end, rollups, rate)
 
     return Response(
         content=pdf_bytes,

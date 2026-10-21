@@ -15,6 +15,7 @@ import {
   mockReportPdf,
   mockSetGoal,
   mockStandby,
+  mockSetTariff,
   mockTariff,
 } from './demo'
 
@@ -53,8 +54,11 @@ export interface DashboardSummary {
 
 export interface TariffOut {
   tariff_rate_brl_per_kwh: number
+  rate_configured: boolean
   tariff_flag: 'green' | 'yellow' | 'red1' | 'red2'
   tariff_flag_label: string
+  flag_source: 'aneel' | 'default'
+  flag_reference_month: string | null
   flag_surcharge_brl_per_kwh: number
   effective_rate_brl_per_kwh: number
 }
@@ -203,6 +207,16 @@ export async function getDashboard(
 export async function getTariff(): Promise<TariffOut> {
   if (DEMO_MODE) return mockTariff()
   const res = await authedFetch('/api/v1/tariff')
+  return res.json()
+}
+
+export async function setTariff(rateBrlPerKwh: number): Promise<TariffOut> {
+  if (DEMO_MODE) return mockSetTariff(rateBrlPerKwh)
+  const res = await authedFetch('/api/v1/tariff', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tariff_rate_brl_per_kwh: rateBrlPerKwh }),
+  })
   return res.json()
 }
 

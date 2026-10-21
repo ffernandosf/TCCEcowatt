@@ -3,13 +3,11 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.device import Device
 from app.models.reading import Reading
 from app.models.rollup import ReadingRollup
-from app.services import processing
-from app.services.tariff_flag import effective_tariff_rate
+from app.services import processing, tariff
 
 
 async def compute_rollup(
@@ -39,6 +37,8 @@ async def compute_rollup(
         energy_wh += processing.energy_wh_between(prev.power, curr.power, seconds)
 
     powers = [r.power for r in readings]
+    # Antes de criar o rollup: a consulta da tarifa dispararia autoflush dele ainda sem custo.
+    rate = await tariff.effective_rate_for_device(db, device_id)
 
     existing = await db.execute(
         select(ReadingRollup).where(
@@ -56,7 +56,6 @@ async def compute_rollup(
 
     rollup.period_end = period_end
     rollup.energy_wh = energy_wh
-    rate = effective_tariff_rate(settings.tariff_rate_brl_per_kwh, settings.tariff_flag)
     rollup.cost_brl = processing.cost_brl(energy_wh, rate)
     rollup.avg_power = sum(powers) / len(powers)
     rollup.min_power = min(powers)
@@ -112,3 +111,20 @@ async def refresh_recent_rollups(lookback_hours: int = 24) -> None:
             for d in (1, 0):
                 start = day_start - timedelta(days=d)
                 await compute_rollup(db, device_id, "day", start, start + timedelta(days=1))
+
+
+async def refresh_owner_month(db: AsyncSession, owner_uid: str) -> None:
+    """Recalcula os rollups do mês corrente (dias) e das últimas 24h dos devices de um usuário."""
+    hour_start, _ = current_period("hour")
+    day_start, _ = current_period("day")
+    month_start = day_start.replace(day=1)
+    result = await db.execute(select(Device.id).where(Device.owner_uid == owner_uid))
+    device_ids = [row[0] for row in result.all()]
+    for device_id in device_ids:
+        for h in range(24, -1, -1):
+            start = hour_start - timedelta(hours=h)
+            await compute_rollup(db, device_id, "hour", start, start + timedelta(hours=1))
+        start = month_start
+        while start <= day_start:
+            await compute_rollup(db, device_id, "day", start, start + timedelta(days=1))
+            start += timedelta(days=1)

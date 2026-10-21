@@ -5,13 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import security
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_owned_device
 from app.models.reading import Reading
 from app.models.rollup import ReadingRollup
 from app.schemas.reading import DashboardSummary, ReadingOut
-from app.services import aggregation
+from app.services import aggregation, tariff
 
 router = APIRouter()
 
@@ -48,6 +47,7 @@ async def dashboard(
     db: AsyncSession = Depends(get_db),
 ):
     await get_owned_device(device_id, user["uid"], db)
+    rate = await tariff.effective_rate_for_owner(db, user["uid"])
     await aggregation.refresh_current_rollup(db, device_id, granularity)
 
     result = await db.execute(
@@ -65,7 +65,7 @@ async def dashboard(
     return DashboardSummary(
         device_id=device_id,
         granularity=granularity,
-        tariff_rate_brl_per_kwh=settings.tariff_rate_brl_per_kwh,
+        tariff_rate_brl_per_kwh=rate,
         total_energy_wh=sum(r.energy_wh for r in rollups),
         total_cost_brl=sum(r.cost_brl for r in rollups),
         rollups=list(rollups),

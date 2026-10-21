@@ -154,14 +154,24 @@ export function mockDashboard(deviceId: string, from: Date, to: Date): Dashboard
   }
 }
 
+let mockTariffRate = TARIFF_RATE
+
 export function mockTariff(): TariffOut {
   return {
-    tariff_rate_brl_per_kwh: TARIFF_RATE,
+    tariff_rate_brl_per_kwh: mockTariffRate,
+    rate_configured: true,
     tariff_flag: 'yellow',
     tariff_flag_label: 'Amarela',
+    flag_source: 'aneel',
+    flag_reference_month: new Date().toISOString().slice(0, 8) + '01',
     flag_surcharge_brl_per_kwh: FLAG_SURCHARGE,
-    effective_rate_brl_per_kwh: EFFECTIVE_RATE,
+    effective_rate_brl_per_kwh: mockTariffRate + FLAG_SURCHARGE,
   }
+}
+
+export function mockSetTariff(rateBrlPerKwh: number): TariffOut {
+  mockTariffRate = rateBrlPerKwh
+  return mockTariff()
 }
 
 export function mockDeviceStatus(deviceId: string): DeviceStatusOut {

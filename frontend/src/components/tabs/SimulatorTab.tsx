@@ -20,7 +20,7 @@ export function SimulatorTab({ deviceId }: Props) {
 
   useEffect(() => {
     getTariff()
-      .then((res) => setTariff(res.tariff_rate_brl_per_kwh))
+      .then((res) => setTariff(res.effective_rate_brl_per_kwh))
       .catch((err) => setError(err instanceof Error ? err.message : t.simulator.tariffError))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -92,7 +92,7 @@ export function SimulatorTab({ deviceId }: Props) {
         </div>
         {tariff != null && (
           <p className="label" style={{ marginTop: '1rem' }}>
-            {t.simulator.tariffConsidered}: R$ {tariff.toFixed(2)}/kWh
+            {t.simulator.tariffConsidered}: R$ {tariff.toFixed(4)}/kWh
           </p>
         )}
       </div>

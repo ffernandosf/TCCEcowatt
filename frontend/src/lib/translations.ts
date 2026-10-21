@@ -53,7 +53,7 @@ const pt = {
     sustainability: 'Sustentabilidade',
     sustainabilitySubtitle: 'Hábitos, standby e carbono',
     tariff: 'Tarifa & dicas',
-    tariffSubtitle: 'Tarifa vigente e economia',
+    tariffSubtitle: 'Sua tarifa, bandeira e economia',
     devices: 'Dispositivos',
     devicesSubtitle: 'Chave de acesso e setup do IoT',
     residences: 'Residências',
@@ -162,10 +162,55 @@ const pt = {
     flagYellow: 'Amarela',
     flagRed1: 'Vermelha 1',
     flagRed2: 'Vermelha 2',
-    baseRate: 'Tarifa base',
+    baseRate: 'Tarifa informada',
     flagSurcharge: 'Adicional da bandeira',
     tipsTitle: 'Dicas para economizar energia',
     loadError: 'Erro ao carregar tarifa.',
+    effectiveRate: 'Tarifa final (sua tarifa + bandeira)',
+    flagFromAneel: 'Bandeira de {month}, consultada automaticamente na ANEEL.',
+    flagFallback: 'Não foi possível consultar a ANEEL agora; usando a bandeira padrão.',
+    notConfigured:
+      'Você ainda não informou a tarifa da sua distribuidora. Os custos estão sendo calculados com um valor estimado — informe o valor da sua conta abaixo.',
+    formTitle: 'Sua tarifa',
+    formSubtitle: 'Informe o preço do kWh que aparece na sua conta de luz, sem o adicional de bandeira.',
+    rateLabel: 'Tarifa (R$/kWh)',
+    save: 'Salvar tarifa',
+    saving: 'Salvando...',
+    saved: 'Tarifa salva. Os custos do mês foram recalculados.',
+    saveError: 'Erro ao salvar tarifa.',
+    invalidRate: 'Informe um valor entre 0,01 e 5,00 R$/kWh.',
+    calcTitle: 'Não achou o preço por kWh? Calcule pela conta',
+    calcAmount: 'Valor cobrado pelo consumo (R$)',
+    calcKwh: 'Consumo do mês (kWh)',
+    calcResult: 'Tarifa calculada',
+    calcUse: 'Usar este valor',
+    guideTitle: 'Como encontrar sua tarifa na conta de luz',
+    guideIntro:
+      'Cada distribuidora tem um layout de conta diferente, mas as informações abaixo aparecem em todas, por exigência da ANEEL.',
+    guideSteps: [
+      {
+        title: 'Pegue a conta mais recente',
+        desc: 'Pode ser a impressa ou o PDF/2ª via no site ou aplicativo da sua distribuidora.',
+      },
+      {
+        title: 'Ache o quadro de itens da fatura',
+        desc: 'Procure "Itens da fatura", "Descrição do faturamento" ou "Detalhamento". Lá ficam as linhas de consumo em kWh.',
+      },
+      {
+        title: 'Localize TUSD e TE',
+        desc: 'Normalmente aparecem duas linhas de consumo: "TUSD" (uso do sistema de distribuição) e "TE" (energia). Algumas contas mostram uma linha só, "Consumo".',
+      },
+      {
+        title: 'Use o preço com tributos',
+        desc: 'Na coluna "Preço unitário com tributos" (R$/kWh), some o valor da TUSD com o da TE. Exemplo: 0,48 + 0,32 = 0,80.',
+      },
+    ],
+    guideTipFlag:
+      'Não inclua a linha de bandeira tarifária: o EcoWatt já soma o adicional da bandeira do mês automaticamente, conforme publicado pela ANEEL.',
+    guideTipOther:
+      'Também ficam de fora: contribuição de iluminação pública, multas, juros e outros serviços cobrados na conta. Se você tem tarifa branca (preço por horário), use o valor fora de ponta como aproximação.',
+    guideTipUpdate:
+      'As distribuidoras reajustam a tarifa uma vez por ano. Quando o valor mudar na sua conta, atualize aqui.',
   },
   tips: [
     'Desligue aparelhos da tomada em vez de deixar em stand-by — o consumo em stand-by pode representar até 12% da conta de luz.',
@@ -467,7 +512,7 @@ const en: typeof pt = {
     sustainability: 'Sustainability',
     sustainabilitySubtitle: 'Habits, standby and carbon',
     tariff: 'Tariff & tips',
-    tariffSubtitle: 'Current tariff and savings',
+    tariffSubtitle: 'Your tariff, flag and savings',
     devices: 'Devices',
     devicesSubtitle: 'Access key and IoT setup',
     residences: 'Residences',
@@ -576,10 +621,55 @@ const en: typeof pt = {
     flagYellow: 'Yellow',
     flagRed1: 'Red 1',
     flagRed2: 'Red 2',
-    baseRate: 'Base tariff',
+    baseRate: 'Your tariff',
     flagSurcharge: 'Flag surcharge',
     tipsTitle: 'Tips to save energy',
     loadError: 'Error loading tariff.',
+    effectiveRate: 'Final tariff (your tariff + flag)',
+    flagFromAneel: 'Flag for {month}, fetched automatically from ANEEL.',
+    flagFallback: "Couldn't reach ANEEL right now; using the default flag.",
+    notConfigured:
+      "You haven't entered your utility's tariff yet. Costs are being calculated with an estimated value — enter the value from your bill below.",
+    formTitle: 'Your tariff',
+    formSubtitle: 'Enter the price per kWh shown on your electricity bill, without the flag surcharge.',
+    rateLabel: 'Tariff (R$/kWh)',
+    save: 'Save tariff',
+    saving: 'Saving...',
+    saved: "Tariff saved. This month's costs were recalculated.",
+    saveError: 'Error saving tariff.',
+    invalidRate: 'Enter a value between 0.01 and 5.00 R$/kWh.',
+    calcTitle: "Can't find the price per kWh? Calculate it from your bill",
+    calcAmount: 'Amount charged for consumption (R$)',
+    calcKwh: 'Monthly consumption (kWh)',
+    calcResult: 'Calculated tariff',
+    calcUse: 'Use this value',
+    guideTitle: 'How to find your tariff on the electricity bill',
+    guideIntro:
+      'Each utility has its own bill layout, but the items below appear on all of them, as required by ANEEL.',
+    guideSteps: [
+      {
+        title: 'Get your latest bill',
+        desc: "Either the printed one or the PDF from your utility's website or app.",
+      },
+      {
+        title: 'Find the billing items table',
+        desc: 'Look for "Itens da fatura", "Descrição do faturamento" or "Detalhamento". The kWh consumption lines are there.',
+      },
+      {
+        title: 'Locate TUSD and TE',
+        desc: 'There are usually two consumption lines: "TUSD" (distribution system usage) and "TE" (energy). Some bills show a single "Consumo" line.',
+      },
+      {
+        title: 'Use the price with taxes',
+        desc: 'In the "Preço unitário com tributos" column (R$/kWh), add the TUSD value to the TE value. Example: 0.48 + 0.32 = 0.80.',
+      },
+    ],
+    guideTipFlag:
+      "Don't include the tariff flag line: EcoWatt already adds the current month's flag surcharge automatically, as published by ANEEL.",
+    guideTipOther:
+      'Also leave out: public lighting contribution, fines, interest and other services billed. If you are on the time-of-use tariff (tarifa branca), use the off-peak price as an approximation.',
+    guideTipUpdate:
+      'Utilities adjust their tariff once a year. When the value changes on your bill, update it here.',
   },
   tips: [
     'Unplug appliances instead of leaving them on standby — standby consumption can account for up to 12% of your electricity bill.',

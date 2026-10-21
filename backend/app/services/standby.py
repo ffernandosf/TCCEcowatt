@@ -5,8 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.reading import Reading
-from app.services import processing
-from app.services.tariff_flag import effective_tariff_rate
+from app.services import processing, tariff
 
 
 def _standby_stats(
@@ -57,7 +56,7 @@ async def compute_standby(
     stats = _standby_stats(
         samples, settings.standby_threshold_w, settings.standby_min_minutes * 60
     )
-    rate = effective_tariff_rate(settings.tariff_rate_brl_per_kwh, settings.tariff_flag)
+    rate = await tariff.effective_rate_for_device(db, device_id)
 
     return {
         "standby_hours": stats["standby_seconds"] / 3600,

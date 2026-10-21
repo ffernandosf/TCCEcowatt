@@ -34,7 +34,7 @@ def build_report_pdf(
         2 * cm, y, f"Período: {period_start.strftime('%d/%m/%Y')} a {period_end.strftime('%d/%m/%Y')}"
     )
     y -= 0.5 * cm
-    doc.drawString(2 * cm, y, f"Tarifa considerada: R$ {tariff_rate_brl_per_kwh:.2f}/kWh")
+    doc.drawString(2 * cm, y, f"Tarifa considerada: R$ {tariff_rate_brl_per_kwh:.4f}/kWh")
     y -= 1 * cm
 
     doc.setFont("Helvetica-Bold", 12)
