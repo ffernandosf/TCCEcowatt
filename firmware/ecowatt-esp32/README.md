@@ -12,7 +12,7 @@ O sensor de verdade (ex. PZEM-004T) é substituído por controles no circuito:
 
 | Peça | Pino | Papel |
 |---|---|---|
-| Potenciômetro | GPIO34 | Carga da casa: ~35 W (standby) até ~2 kW |
+| Potenciômetro | GPIO34 | Carga da casa: 0 a 7,8 kW |
 | Chave deslizante | GPIO27 | Chuveiro elétrico ligado (+5,5 kW) |
 | LED verde | GPIO2 | Pisca quando a API aceita a leitura (HTTP 201) |
 

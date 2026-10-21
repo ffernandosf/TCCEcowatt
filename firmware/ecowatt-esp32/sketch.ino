@@ -5,7 +5,7 @@
 // (POST /api/v1/ingest com X-Device-Key) — nunca direto no RTDB ou no banco.
 //
 // Carga simulada (no lugar de um sensor tipo PZEM-004T):
-//   - Potenciômetro (GPIO34): carga da casa, de standby até ~2 kW
+//   - Potenciômetro (GPIO34): carga da casa, de 0 a 7,8 kW
 //   - Chave deslizante (GPIO27): liga/desliga o chuveiro elétrico (+5,5 kW)
 //   - LED (GPIO2): pisca a cada leitura aceita pela API
 
@@ -28,8 +28,7 @@ const int PIN_SHOWER = 27;
 const int PIN_LED = 2;
 
 const unsigned long SEND_INTERVAL_MS = 5000;
-const float STANDBY_W = 35.0;     // geladeira em repouso, roteador, stand-by
-const float MAX_LOAD_W = 2000.0;  // potenciômetro no máximo
+const float MAX_LOAD_W = 7800.0;  // potenciômetro no máximo
 const float SHOWER_W = 5500.0;
 const float NOMINAL_VOLTAGE = 220.0;
 
@@ -70,7 +69,7 @@ bool isoTimestamp(char* buf, size_t len) {
 }
 
 float readPower() {
-  float load = STANDBY_W + (analogRead(PIN_LOAD) / 4095.0) * MAX_LOAD_W;
+  float load = (analogRead(PIN_LOAD) / 4095.0) * MAX_LOAD_W;
   if (digitalRead(PIN_SHOWER) == LOW) load += SHOWER_W;
   return max(0.0f, load + noise(load * 0.02));
 }
