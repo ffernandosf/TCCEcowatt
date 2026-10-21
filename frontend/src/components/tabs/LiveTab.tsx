@@ -41,6 +41,13 @@ const NOTIF_ICON: Record<NotificationOut['type'], typeof PlugIcon> = {
   spike: AlertTriangleIcon,
 }
 
+const TREND_WINDOW_MS = 24 * 60 * 60 * 1000
+
+interface TrendPoint {
+  timestamp: string
+  power: number
+}
+
 const tooltipStyle = {
   background: 'var(--color-surface)',
   border: '1px solid var(--color-border)',
@@ -53,7 +60,7 @@ export function LiveTab({ deviceId }: Props) {
   const { t, language } = useI18n()
   const reading = useLiveReading(deviceId)
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
-  const [recentReadings, setRecentReadings] = useState<ReadingOut[]>([])
+  const [trend, setTrend] = useState<TrendPoint[]>([])
   const [notifications, setNotifications] = useState<NotificationOut[]>([])
   const [notClaimed, setNotClaimed] = useState(false)
   const [error, setError] = useState('')
@@ -65,11 +72,11 @@ export function LiveTab({ deviceId }: Props) {
     try {
       const [summaryResult, readingsResult, notifResult] = await Promise.all([
         getDashboard(deviceId, startOfToday(), new Date(), 'hour'),
-        getReadings(deviceId, new Date(Date.now() - 24 * 60 * 60 * 1000), new Date()),
+        getReadings(deviceId, new Date(Date.now() - TREND_WINDOW_MS), new Date()),
         getNotifications(deviceId),
       ])
       setSummary(summaryResult)
-      setRecentReadings(readingsResult)
+      setTrend(readingsResult.map((r: ReadingOut) => ({ timestamp: r.timestamp, power: r.power })))
       setNotifications(notifResult)
       setNotClaimed(false)
     } catch (err) {
@@ -81,16 +88,47 @@ export function LiveTab({ deviceId }: Props) {
     }
   }
 
+  // Energia/custo do dia e notificações vêm da API; recarrega a cada nova leitura ao vivo.
+  async function refreshTotals() {
+    try {
+      const [summaryResult, notifResult] = await Promise.all([
+        getDashboard(deviceId, startOfToday(), new Date(), 'hour'),
+        getNotifications(deviceId),
+      ])
+      setSummary(summaryResult)
+      setNotifications(notifResult)
+    } catch {
+      // Falha pontual: mantém os valores anteriores até a próxima leitura.
+    }
+  }
+
   useEffect(() => {
     loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId])
 
+  const liveTimestamp = reading?.timestamp
+  const livePower = reading?.power
+
+  useEffect(() => {
+    if (liveTimestamp == null || livePower == null) return
+    setTrend((prev) => {
+      const last = prev[prev.length - 1]
+      if (last && new Date(last.timestamp) >= new Date(liveTimestamp)) return prev
+      const cutoff = Date.now() - TREND_WINDOW_MS
+      return [...prev, { timestamp: liveTimestamp, power: livePower }].filter(
+        (p) => new Date(p.timestamp).getTime() >= cutoff,
+      )
+    })
+    if (!notClaimed) refreshTotals()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveTimestamp])
+
   if (notClaimed) {
     return <ClaimDeviceCard deviceId={deviceId} onClaimed={loadAll} />
   }
 
-  const chartData = recentReadings.map((r) => ({
+  const chartData = trend.map((r) => ({
     time: new Date(r.timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }),
     power: r.power,
   }))
