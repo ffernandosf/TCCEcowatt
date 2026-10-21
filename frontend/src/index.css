@@ -178,7 +178,9 @@ input {
 
 .pref-toggle-btn {
   flex: 1;
-  padding: 0.4rem;
+  height: 1.9rem;
+  padding: 0 0.4rem;
+  line-height: 1;
   border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-surface);
@@ -216,6 +218,14 @@ input {
 
 .preferences-row:last-child {
   border-bottom: none;
+}
+
+/* No perfil o botão não estica: com flex: 1 a largura dependia do texto ao lado. */
+.preferences-row .pref-toggle-btn {
+  flex: 0 0 auto;
+  width: 4.5rem;
+  height: 2.25rem;
+  padding: 0;
 }
 
 /* ---------- Main area ---------- */
