@@ -20,12 +20,8 @@ function arcPath(fromFraction: number, toFraction: number, radius: number) {
   return `M ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2}`
 }
 
-function scaleMax(watts: number) {
-  if (!watts || watts <= 0) return 2000
-  const target = watts * 1.35
-  const step = target > 4000 ? 1000 : 500
-  return Math.max(step * 2, Math.ceil(target / step) * step)
-}
+// Escala fixa: o ponteiro percorre o arco inteiro de 0 até o máximo.
+const MAX_W = 7800
 
 const ZONES: [number, number, string][] = [
   [0, 0.6, 'var(--color-good)'],
@@ -34,14 +30,14 @@ const ZONES: [number, number, string][] = [
 ]
 
 export function PowerGauge({ watts, label, waitingLabel }: Props) {
-  const max = scaleMax(watts ?? 0)
-  const fraction = watts != null ? Math.min(1, Math.max(0, watts / max)) : 0
+  const fraction = watts != null ? Math.min(1, Math.max(0, watts / MAX_W)) : 0
   const ticks = Array.from({ length: 9 }, (_, i) => i / 8)
-  const needleTip = pointAt(fraction, R - TRACK_WIDTH - 6)
+  // Desenhado apontando para 0 e girado — rotate anima suave, x2/y2 não.
+  const needleTip = pointAt(0, R - TRACK_WIDTH - 6)
 
   return (
     <div className="power-gauge">
-      <svg className="power-gauge-svg" viewBox="0 0 220 132">
+      <svg className="power-gauge-svg" viewBox="0 0 220 136">
         <path
           d={arcPath(0, 1, R)}
           fill="none"
@@ -73,7 +69,14 @@ export function PowerGauge({ watts, label, waitingLabel }: Props) {
           stroke="var(--color-accent)"
           strokeWidth={2.5}
           strokeLinecap="round"
+          style={{ transform: `rotate(${fraction * 180}deg)`, transformOrigin: `${CX}px ${CY}px` }}
         />
+        <text x={CX - R} y={CY + 13} textAnchor="middle" className="power-gauge-scale">
+          0
+        </text>
+        <text x={CX + R} y={CY + 13} textAnchor="middle" className="power-gauge-scale">
+          {(MAX_W / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })} kW
+        </text>
         {watts != null && <circle className="power-gauge-pulse" cx={CX} cy={CY} r={5} fill="var(--color-accent)" />}
         <circle cx={CX} cy={CY} r={5} fill="var(--color-accent)" />
       </svg>
